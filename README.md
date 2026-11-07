@@ -31,6 +31,11 @@ Mizan is a **decision-support tool**. The recruiter always makes the final decis
 cp .env.example .env        # fill in your keys
 docker compose up --build   # api on http://localhost:8000, /health
 ```
+Apply the database schema (once per database; re-run after pulling new migrations):
+```bash
+cd apps/api && DATABASE_URL=postgresql://mizan:mizan@localhost:5433/mizan alembic upgrade head
+```
+The same command against your Neon `DATABASE_URL` sets up production. API docs: http://localhost:8000/docs
 Web app:
 ```bash
 cd apps/web && npm install && npm run dev   # http://localhost:3000

@@ -9,11 +9,11 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# apps/api/mizan/core/config.py -> repo root is 4 levels up. Looking there (and in
-# apps/api) means `uvicorn`/`pytest` find .env no matter which folder you run from.
-# Real env vars (docker compose, Vercel) always win over the file.
-_REPO_ROOT = Path(__file__).resolve().parents[4]
-_ENV_FILES = (_REPO_ROOT / ".env", _REPO_ROOT / "apps" / "api" / ".env")
+# Look for a .env in this file's ancestors (apps/api/.env, repo-root/.env, ...), so
+# `uvicorn`/`pytest` find it no matter which folder you run from. Missing files are
+# skipped, and inside Docker (/app/mizan/core/config.py has only 3 ancestors) nothing
+# breaks. Real env vars (docker compose, Vercel) always win over any file.
+_ENV_FILES = tuple(parent / ".env" for parent in Path(__file__).resolve().parents[:5])
 
 
 class Settings(BaseSettings):

@@ -15,9 +15,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ---- Layer 2: application code ----
+# ---- Layer 2: application code + migrations ----
 # Changes often -> comes last so only this layer is rebuilt.
 COPY mizan/ ./mizan/
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
 
 # ---- Security: don't run as root inside the container ----
 RUN useradd --create-home --uid 1000 appuser && chown -R appuser:appuser /app

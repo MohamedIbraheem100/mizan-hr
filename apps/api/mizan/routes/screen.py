@@ -1,4 +1,5 @@
-"""POST /screen: one CV against one rubric, streamed as Server-Sent Events.
+"""POST /screen: one CV against a screening's rubric, streamed as Server-Sent Events,
+and the verified result persisted.
 
 SSE is plain text over a kept-open HTTP response:
 
@@ -19,13 +20,15 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 from starlette.concurrency import iterate_in_threadpool
 
+from mizan.db import repo
+from mizan.db.session import get_db, get_sessionmaker
 from mizan.llm.gateway import LLMGateway, LLMUnavailableError, get_gateway
 from mizan.pipeline.graph import run_screening
 from mizan.pipeline.parse import UnsupportedFileError, parse_file
-from mizan.schemas.rubric import Rubric
 from mizan.schemas.screening import ProgressEvent, ScreeningResult
 
 log = logging.getLogger("mizan.screen")
@@ -42,20 +45,22 @@ def sse(event: str, payload: BaseModel | dict) -> str:
 @router.post("/screen")
 async def screen(
     file: Annotated[UploadFile, File(description="CV as .pdf, .docx or .txt (max 5 MB)")],
-    rubric: Annotated[str, Form(description="Rubric JSON as returned by POST /rubric")],
+    screening_id: Annotated[str, Form(description="From POST /screenings")],
     gateway: Annotated[LLMGateway, Depends(get_gateway)],
-    blind: Annotated[bool, Form()] = False,
+    db: Annotated[Session, Depends(get_db)],
     candidate_ref: Annotated[str, Form(max_length=60)] = "",
 ) -> StreamingResponse:
+    screening = repo.get_screening(db, screening_id)
+    if screening is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Screening not found.")
+    if repo.is_expired(screening):
+        raise HTTPException(status.HTTP_410_GONE, "This screening has expired.")
+    rubric = repo.rubric_of(screening)
+    blind = screening.blind
+
     data = await file.read()
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "File larger than 5 MB.")
-    try:
-        rubric_obj = Rubric.model_validate_json(rubric)
-    except ValidationError as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, f"Invalid rubric: {exc.errors()[0]['msg']}"
-        ) from exc
     try:
         cv = parse_file(file.filename or "cv", data)
     except UnsupportedFileError as exc:
@@ -73,7 +78,7 @@ async def screen(
     if not cv.lines:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "The file contains no text.")
 
-    ref = candidate_ref.strip() or "Candidate"
+    ref = candidate_ref.strip() or f"Candidate #{len(screening.results) + 1}"
 
     def events() -> Iterator[str]:
         yield sse(
@@ -86,9 +91,12 @@ async def screen(
         )
         try:
             for item in run_screening(
-                gateway, rubric=rubric_obj, cv=cv, blind=blind, candidate_ref=ref
+                gateway, rubric=rubric, cv=cv, blind=blind, candidate_ref=ref
             ):
                 if isinstance(item, ScreeningResult):
+                    # This generator runs in a worker thread: it gets its own session.
+                    with get_sessionmaker()() as session:
+                        repo.save_result(session, screening_id, item)
                     yield sse("result", item)
                 else:
                     yield sse("progress", item)

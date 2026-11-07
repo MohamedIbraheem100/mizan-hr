@@ -34,7 +34,10 @@ services:
       POSTGRES_PASSWORD: mizan
       POSTGRES_DB: mizan
     ports:
-      - "5432:5432"
+      # host:container. 5433 on the host avoids clashing with a locally installed
+      # PostgreSQL service (default 5432). From your machine: localhost:5433.
+      # Inside the compose network the api still uses postgres:5432.
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data  # named volume: data survives `docker compose down`
     healthcheck:
