@@ -1,0 +1,13 @@
+# Keep the serverless bundle small: only mizan/, api/, alembic/ and requirements.txt matter.
+tests/
+venv/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+Dockerfile
+.dockerignore
+requirements-dev.txt
+# pyproject.toml only holds ruff/pytest config. If Vercel sees it, it installs deps
+# from it (none!) instead of requirements.txt. Hide it so requirements.txt is used.
+pyproject.toml

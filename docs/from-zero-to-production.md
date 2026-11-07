@@ -34,6 +34,7 @@
 18. [M3 بالتفصيل: الـ LLM Gateway و Parse و Rubric](#18-m3-بالتفصيل)
 19. [M4a بالتفصيل: محرك التقييم](#19-m4a-بالتفصيل)
 20. [M4b بالتفصيل: الـ Database والـ Migrations](#20-m4b-بالتفصيل)
+21. [M5a بالتفصيل: الـ API على Vercel](#21-m5a-بالتفصيل)
 
 ---
 
@@ -1534,8 +1535,61 @@ alembic downgrade -1                      # ارجع خطوة
 
 ---
 
+## 21. M5a بالتفصيل
+
 <div dir="rtl" align="right">
 
-*آخر تحديث: 7 نوفمبر 2026، بعد M0 إلى M4b.*
+### الهدف
+
+الـ API يبقى على الإنترنت زي الـ landing، عشان الـ UI في M5b يقدر يكلمه من أي متصفح. Vercel بيشغّل Python كـ **serverless function**: الكود بيتشغّل لما request ييجي، وبينام لما مفيش.
+
+### 3 ملفات بس
+
+| الملف | دوره |
+|---|---|
+| `api/index.py` | سطر واحد: `from mizan.main import app`. Vercel بيدوّر على فولدر `api/` وبيعتبر أي ملف فيه function |
+| `vercel.json` | `maxDuration: 300` (أقصى زمن للـ request). مفيش rewrites |
+| `.vercelignore` | زي `.dockerignore`: tests و venv و **`pyproject.toml`** مايترفعوش |
+
+ومشروع تاني على Vercel (`mizan-hr-api`) بـ Root Directory = `apps/api`. نفس الـ repo، مشروعين، كل واحد بيبني من فولدره.
+
+### الـ env vars في production
+
+الـ `.env` عمره مايطلع من جهازك. على Vercel: Settings ثم Environment Variables. فيه زرار **Import .env** بيقرا الملف ويعمل المتغيرات كـ Secrets (مش بتتشاف بعد الحفظ). وضفنا `APP_ENV=production` يدوي.
+
+### 3 مشاكل في 3 deploys (وكل واحدة الـ log قالها)
+
+| الـ deploy | العرَض | السبب من الـ log | الحل |
+|---|---|---|---|
+| 1 (خلص في 10 ثواني) | `500 FUNCTION_INVOCATION_FAILED` | `Installing required dependencies from pyproject.toml` ثم `No module named 'fastapi'`. Vercel فضّل `pyproject.toml` (فيه إعدادات ruff بس) على `requirements.txt` | `pyproject.toml` في `.vercelignore` + `.python-version` |
+| 2 (33 ثانية) | `404 {"detail":"Not Found"}` من FastAPI نفسه | تحذير في الـ build: الـ rewrite بقى بيبعت المسار المحوّل، فـ FastAPI بيشوف `/api/index` بدل `/health` | شيل الـ rewrites؛ Vercel مكتشف FastAPI وبيوصّل المسارات زي ما هي |
+| 3 | `/health` 200 | | |
+
+**الدرس الأول:** build أسرع من المنطقي = علامة خطر، اقرا الـ log. **الدرس التاني:** الـ 404 كان تقدم مش تراجع: المرة الأولى الـ function كانت بتموت قبل ما ترد، المرة التانية FastAPI هو اللي بيرد. اقرا مين اللي بيرد عليك.
+
+### النتيجة live (من على Vercel، لـ Neon)
+
+</div>
+
+```
+POST /rubric      -> 6 criteria (Groq من على Vercel)
+POST /screenings  -> screening_id, blind=true, expires_at = +24h
+POST /screen      -> SSE: parse, redact, extract+judge, verify, score, explain
+                     6 ثواني إجمالاً، 3.5 ثانية pipeline، 4 LLM calls
+                     score 97، 6 اقتباسات اتفحصت و6 اتأكدت
+GET /screenings   -> النتيجة راجعة من Neon
+```
+
+<div dir="rtl" align="right">
+
+يعني الـ SSE streaming شغال على Vercel functions، والـ cold start مقبول، والـ production DB بتستقبل.
+
+</div>
+
+---
+
+<div dir="rtl" align="right">
+
+*آخر تحديث: 7 نوفمبر 2026، بعد M0 إلى M5a.*
 
 </div>
