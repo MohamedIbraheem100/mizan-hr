@@ -24,14 +24,21 @@ class Settings(BaseSettings):
     app_env: str = "development"
     log_level: str = "INFO"
 
-    # LLM gateway: provider order is [llm_provider, llm_fallback_provider]
+    # LLM gateway. Preferred: a comma-separated chain, each item "name" or "name:model",
+    # e.g. "groq:openai/gpt-oss-120b,groq:openai/gpt-oss-20b,gemini". Groq rate-limits
+    # per model, so listing several models multiplies free-tier throughput.
+    llm_providers: str = ""
+    # Legacy pair, used only when llm_providers is empty.
     llm_provider: str = "gemini"
     llm_fallback_provider: str = "groq"  # "none" disables the fallback
     llm_timeout_s: float = 60.0
+    llm_max_retry_wait_s: float = 15.0  # honour "retry in N s" up to this; beyond it, fall back
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-120b"
+    # gpt-oss models "think" before answering; low effort = fewer tokens, faster, same JSON.
+    groq_reasoning_effort: str = "low"
     openai_api_key: str = ""
 
     # Storage (used from M4)

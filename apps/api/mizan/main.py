@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from mizan import __version__
 from mizan.core.config import get_settings
 from mizan.core.logging import configure_logging
-from mizan.routes import health, rubric
+from mizan.routes import health, rubric, screen
 
 configure_logging(get_settings().log_level)
 
@@ -27,3 +27,4 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(rubric.router)
+app.include_router(screen.router)

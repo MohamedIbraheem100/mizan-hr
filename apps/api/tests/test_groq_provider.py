@@ -47,7 +47,7 @@ def test_json_validate_failed_is_returned_as_output_not_transport_error():
 
 def test_other_bad_requests_are_transport_errors():
     exc = _bad_request({"error": {"code": "model_not_found", "message": "no such model"}})
-    with pytest.raises(ProviderError, match="groq: BadRequestError"):
+    with pytest.raises(ProviderError, match="BadRequestError"):
         _provider_raising(exc).generate_json(system="s", user="u", schema=RubricDraft, timeout_s=5)
 
 
