@@ -1,0 +1,7 @@
+# Normalize line endings: store LF in the repo, LF in the working copy.
+# Prevents CRLF from breaking shell scripts / Dockerfiles inside Linux containers.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+*.docx binary
