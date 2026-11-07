@@ -52,3 +52,4 @@ The public demo uses **synthetic** CVs only. Do not upload real candidates' CVs.
 - [Project documentation](docs/project-documentation.md)
 - [Architecture](docs/architecture.md)
 - [Decisions (ADRs)](docs/decisions/)
+- [From zero to production: study guide (Arabic)](docs/from-zero-to-production.md)
