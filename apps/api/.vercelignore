@@ -1,0 +1,10 @@
+# Keep the serverless bundle small: only mizan/, api/, alembic/ and requirements.txt matter.
+tests/
+venv/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+Dockerfile
+.dockerignore
+requirements-dev.txt
