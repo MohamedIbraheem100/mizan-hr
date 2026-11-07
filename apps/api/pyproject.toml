@@ -8,4 +8,5 @@ select = ["E", "F", "I", "B", "UP"]   # errors, pyflakes, isort, bugbear, pyupgr
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q -m \"not live\""
+markers = ["live: calls real LLM providers; needs API keys (skipped in CI)"]
