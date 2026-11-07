@@ -36,10 +36,11 @@ Apply the database schema (once per database; re-run after pulling new migration
 cd apps/api && DATABASE_URL=postgresql://mizan:mizan@localhost:5433/mizan alembic upgrade head
 ```
 The same command against your Neon `DATABASE_URL` sets up production. API docs: http://localhost:8000/docs
-Web app:
+Web app (talks to the API at `NEXT_PUBLIC_API_URL`, default http://localhost:8000):
 ```bash
 cd apps/web && npm install && npm run dev   # http://localhost:3000
 ```
+Checks: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
 
 ## Repo layout
 ```
