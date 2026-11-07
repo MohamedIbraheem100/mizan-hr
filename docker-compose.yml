@@ -1,0 +1,58 @@
+# Local development stack: api + postgres(pgvector) + redis
+# Usage: docker compose up --build
+# Production uses Neon + Upstash instead; this file is never deployed.
+
+services:
+  api:
+    build:
+      context: ./apps/api
+    container_name: mizan-api
+    ports:
+      - "8000:8000"                     # host:container
+    env_file:
+      - .env                            # your API keys (never committed)
+    environment:
+      # Override the Neon/Upstash values from .env with the local containers.
+      APP_ENV: development
+      DATABASE_URL: postgresql://mizan:mizan@postgres:5432/mizan
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      # Bind-mount the source so edits on the host reload inside the container.
+      - ./apps/api/mizan:/app/mizan
+    command: uvicorn mizan.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      postgres:
+        condition: service_healthy     # wait until postgres answers, not just "started"
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: pgvector/pgvector:pg16        # postgres 16 + pgvector extension preinstalled
+    container_name: mizan-postgres
+    environment:
+      POSTGRES_USER: mizan
+      POSTGRES_PASSWORD: mizan
+      POSTGRES_DB: mizan
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # named volume: data survives `docker compose down`
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mizan -d mizan"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: mizan-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
