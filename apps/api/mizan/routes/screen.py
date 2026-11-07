@@ -18,12 +18,13 @@ import logging
 from collections.abc import Iterator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette.concurrency import iterate_in_threadpool
 
+from mizan.core.ratelimit import RateLimiter, client_ip, get_limiter
 from mizan.db import repo
 from mizan.db.session import get_db, get_sessionmaker
 from mizan.llm.gateway import LLMGateway, LLMUnavailableError, get_gateway
@@ -48,8 +49,22 @@ async def screen(
     screening_id: Annotated[str, Form(description="From POST /screenings")],
     gateway: Annotated[LLMGateway, Depends(get_gateway)],
     db: Annotated[Session, Depends(get_db)],
+    limiter: Annotated[RateLimiter, Depends(get_limiter)],
+    request: Request,
     candidate_ref: Annotated[str, Form(max_length=60)] = "",
 ) -> StreamingResponse:
+    decision = limiter.check(
+        client_ip(dict(request.headers), request.client.host if request.client else "?")
+    )
+    if not decision.allowed:
+        detail = (
+            "Daily limit reached for this demo (10 CVs per visitor per day)."
+            if decision.scope == "visitor"
+            else "The public demo reached its daily capacity. Try again tomorrow."
+        )
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, detail, headers={"Retry-After": "3600"}
+        )
     screening = repo.get_screening(db, screening_id)
     if screening is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Screening not found.")

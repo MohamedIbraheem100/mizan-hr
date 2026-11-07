@@ -1,0 +1,18 @@
+name: Retention cleanup
+
+# Privacy rule: screenings and their results are deleted 24 h after creation.
+# A scheduled job (cron) calls the API every hour with a shared secret.
+on:
+  schedule:
+    - cron: "17 * * * *" # minute 17 of every hour (UTC); off the hour avoids the rush
+  workflow_dispatch: # manual run button in the Actions tab
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call POST /admin/cleanup
+        run: |
+          curl --fail --silent --show-error -X POST \
+            -H "X-Cleanup-Token: ${{ secrets.CLEANUP_TOKEN }}" \
+            https://mizan-hr-api.vercel.app/admin/cleanup

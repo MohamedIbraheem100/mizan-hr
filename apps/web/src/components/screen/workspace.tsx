@@ -115,6 +115,24 @@ export function Workspace() {
     }
   };
 
+  const loadScreenMe = async () => {
+    setLoadingSamples(true);
+    try {
+      const res = await fetch("/screen-me/cv.pdf");
+      if (!res.ok) throw new ApiError(res.status, t.wizard.errors.notFound);
+      const blob = await res.blob();
+      const file = new File([blob], "author-cv.pdf", { type: "application/pdf" });
+      setCandidates((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), file, ref: t.screenMe.ref, status: "queued", statuses: {} },
+      ]);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setLoadingSamples(false);
+    }
+  };
+
   const patch = (id: string, fn: (c: Candidate) => Candidate) =>
     setCandidates((prev) => prev.map((c) => (c.id === id ? fn(c) : c)));
 
@@ -148,9 +166,11 @@ export function Workspace() {
     } catch (e) {
       const msg =
         e instanceof ApiError
-          ? e.status === 422 && /scanned|text layer/i.test(e.message)
-            ? t.wizard.errors.scanned
-            : e.message
+          ? e.status === 429
+            ? t.wizard.errors.rateLimited
+            : e.status === 422 && /scanned|text layer/i.test(e.message)
+              ? t.wizard.errors.scanned
+              : e.message
           : t.wizard.errors.api;
       patch(c.id, (x) => ({ ...x, status: "error", error: msg }));
     }
@@ -210,6 +230,7 @@ export function Workspace() {
             onAdd={addFiles}
             onRemove={(id) => setCandidates((p) => p.filter((c) => c.id !== id))}
             onLoadSamples={loadSamples}
+            onScreenMe={loadScreenMe}
             onStart={start}
             onViewResults={() => setStep(3)}
             running={running}

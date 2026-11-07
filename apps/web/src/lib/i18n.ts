@@ -5,7 +5,7 @@ export type Lang = "en" | "ar";
 const en = {
   brand: "Mizan",
   tagline: "Evidence-based CV screening",
-  nav: { how: "How it works", screen: "Start screening", github: "Source" },
+  nav: { how: "How it works", screen: "Start screening", github: "Source", demo: "Demo", privacy: "Privacy" },
   lang: { switch: "العربية", code: "AR" },
 
   hero: {
@@ -13,7 +13,7 @@ const en = {
     title: "Every score, backed by a line from the CV.",
     body: "Mizan turns a job description into a weighted rubric, screens CVs against it, and shows exactly which line justified each judgement. Nothing is assumed. The decision stays yours.",
     cta: "Screen CVs",
-    secondary: "See how it works",
+    secondary: "See the demo",
     stat1: "quotes verified in code, not by the model",
     stat2: "seconds per CV on the public demo",
     stat3: "CV files stored",
@@ -164,7 +164,30 @@ const en = {
       type: "Unsupported file type.",
       expired: "This screening has expired. Results are kept for 24 hours.",
       notFound: "Screening not found.",
+      rateLimited: "Daily limit reached for this public demo (10 CVs per visitor). The precomputed demo is always available.",
     },
+  },
+
+  demo: {
+    title: "Precomputed demo",
+    body: "Ten synthetic CVs screened in Blind mode against a backend-engineer role, by the real pipeline, saved on the day it ran. It loads even if every model API is down.",
+    open: "Open the live workspace",
+    generated: "Generated",
+    viewJd: "Job description used",
+  },
+  screenMe: { button: "Add the author's CV", hint: "Screen the person who built Mizan against your own job description.", ref: "Mohamady (author)" },
+  privacy: {
+    title: "Privacy",
+    intro: "Mizan is a public demo of a decision-support tool for recruiters. This page says exactly what happens to what you upload.",
+    sections: [
+      { t: "What is never stored", d: "CV files and CV text. A file is parsed in memory, its lines are streamed back only to the browser that uploaded it, and nothing of it is written to disk or database." },
+      { t: "What is stored, and for how long", d: "The confirmed rubric, each candidate's score, the verdict per criterion, the quoted evidence lines, and the generated summary. All of it is deleted automatically 24 hours after the screening was created." },
+      { t: "Where the text goes", d: "To produce judgements, the CV text is sent to third-party language-model APIs (currently Groq, with Google Gemini as a fallback) under their API terms. In Blind mode, identity and protected attributes are removed before any of that happens." },
+      { t: "What we never look at", d: "Age, date of birth, gender, nationality, religion, marital status, photos. The prompts forbid it, and Blind mode removes it. Gaps in a CV become interview questions, never penalties." },
+      { t: "Rate limits and abuse", d: "Ten CVs per visitor per day and a global daily cap, counted against a hashed IP address that is kept for 24 hours. No cookies, no analytics, no accounts." },
+      { t: "This is a demo", d: "It runs on free infrastructure. Do not upload CVs of real candidates. Use the synthetic sample set, or your own CV." },
+    ],
+    contact: "Questions: open an issue on the GitHub repository.",
   },
 
   templates: {
@@ -178,7 +201,7 @@ const en = {
 const ar: typeof en = {
   brand: "ميزان",
   tagline: "فرز السير الذاتية بالدليل",
-  nav: { how: "كيف يعمل", screen: "ابدأ الفرز", github: "الكود" },
+  nav: { how: "كيف يعمل", screen: "ابدأ الفرز", github: "الكود", demo: "العرض", privacy: "الخصوصية" },
   lang: { switch: "English", code: "EN" },
 
   hero: {
@@ -186,7 +209,7 @@ const ar: typeof en = {
     title: "كل درجة، وراها سطر من السيرة الذاتية.",
     body: "ميزان يحوّل الوصف الوظيفي إلى معايير بأوزان، يفرز السير الذاتية عليها، ويعرض بالضبط السطر الذي برّر كل حكم. لا افتراضات. والقرار يبقى لك.",
     cta: "ابدأ الفرز",
-    secondary: "كيف يعمل",
+    secondary: "شاهد العرض",
     stat1: "من الاقتباسات تُراجَع بالكود لا بالنموذج",
     stat2: "ثانية لكل سيرة ذاتية في النسخة التجريبية",
     stat3: "ملف سيرة ذاتية يُخزَّن",
@@ -337,7 +360,30 @@ const ar: typeof en = {
       type: "نوع ملف غير مدعوم.",
       expired: "انتهت صلاحية هذا الفرز. تُحفظ النتائج 24 ساعة.",
       notFound: "لم يُعثر على الفرز.",
+      rateLimited: "وصلت للحد اليومي للنسخة التجريبية (10 سير ذاتية لكل زائر). العرض المحسوب مسبقًا متاح دائمًا.",
     },
+  },
+
+  demo: {
+    title: "عرض محسوب مسبقًا",
+    body: "عشر سير ذاتية مصطنعة فُرزت في الوضع الأعمى مقابل وظيفة مهندس Backend بالـ pipeline الحقيقي، وحُفظت يوم تشغيلها. تُحمَّل حتى لو توقفت كل واجهات النماذج.",
+    open: "افتح مساحة الفرز الحية",
+    generated: "أُنشئ في",
+    viewJd: "الوصف الوظيفي المستخدم",
+  },
+  screenMe: { button: "أضف سيرة صاحب المشروع", hint: "افرز الشخص الذي بنى ميزان مقابل وصفك الوظيفي.", ref: "محمدي (المؤلف)" },
+  privacy: {
+    title: "الخصوصية",
+    intro: "ميزان نسخة تجريبية عامة لأداة دعم قرار لمسؤولي التوظيف. هذه الصفحة تقول بالضبط ماذا يحدث لما ترفعه.",
+    sections: [
+      { t: "ما لا يُخزَّن أبدًا", d: "ملفات السير الذاتية ونصوصها. يُقرأ الملف في الذاكرة، وتُبث سطوره فقط إلى المتصفح الذي رفعه، ولا يُكتب منه شيء على قرص أو قاعدة بيانات." },
+      { t: "ما يُخزَّن ولكم من الوقت", d: "المعايير المؤكدة، ودرجة كل مرشح، والحكم لكل معيار، وسطور الدليل المقتبسة، والملخص. يُحذف كل ذلك تلقائيًا بعد 24 ساعة من إنشاء الفرز." },
+      { t: "إلى أين يذهب النص", d: "لإصدار الأحكام يُرسل نص السيرة إلى واجهات نماذج لغوية خارجية (حاليًا Groq، و Google Gemini كبديل) وفق شروطها. في الوضع الأعمى تُزال الهوية والسمات المحمية قبل ذلك." },
+      { t: "ما لا ننظر إليه أبدًا", d: "العمر وتاريخ الميلاد والنوع والجنسية والديانة والحالة الاجتماعية والصور. التعليمات تمنعه والوضع الأعمى يزيله. الفجوات تتحول إلى أسئلة مقابلة لا إلى عقوبات." },
+      { t: "الحدود ومنع الإساءة", d: "عشر سير ذاتية لكل زائر يوميًا وسقف يومي عام، تُحسب على عنوان IP مُشفَّر يُحفظ 24 ساعة. لا كوكيز ولا تحليلات ولا حسابات." },
+      { t: "هذه نسخة تجريبية", d: "تعمل على بنية مجانية. لا ترفع سيرًا ذاتية لمرشحين حقيقيين. استخدم المجموعة التجريبية أو سيرتك أنت." },
+    ],
+    contact: "للأسئلة: افتح issue على مستودع GitHub.",
   },
 
   templates: {

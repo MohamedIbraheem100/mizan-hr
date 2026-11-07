@@ -17,6 +17,7 @@ export function UploadStep({
   onAdd,
   onRemove,
   onLoadSamples,
+  onScreenMe,
   onStart,
   onViewResults,
   running,
@@ -26,6 +27,7 @@ export function UploadStep({
   onAdd: (files: File[]) => void;
   onRemove: (id: string) => void;
   onLoadSamples: () => void;
+  onScreenMe: () => void;
   onStart: () => void;
   onViewResults: () => void;
   running: boolean;
@@ -78,18 +80,31 @@ export function UploadStep({
               e.target.value = "";
             }}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-5"
-            disabled={loadingSamples}
-            onClick={(e) => {
-              e.stopPropagation();
-              onLoadSamples();
-            }}
-          >
-            {t.wizard.upload.samples}
-          </Button>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loadingSamples}
+              onClick={(e) => {
+                e.stopPropagation();
+                onLoadSamples();
+              }}
+            >
+              {t.wizard.upload.samples}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loadingSamples}
+              title={t.screenMe.hint}
+              onClick={(e) => {
+                e.stopPropagation();
+                onScreenMe();
+              }}
+            >
+              {t.screenMe.button}
+            </Button>
+          </div>
         </div>
       )}
 

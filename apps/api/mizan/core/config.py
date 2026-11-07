@@ -48,6 +48,13 @@ class Settings(BaseSettings):
 
     # Limits
     max_jd_chars: int = 10_000
+    rate_limit_per_day: int = 10  # CVs per visitor per day (public demo)
+    rate_limit_global_per_day: int = 200  # CVs per day across all visitors (protects quota)
+
+    # Ops
+    cleanup_token: str = ""  # shared secret for POST /admin/cleanup (GitHub Actions cron)
+    cors_origins: str = "https://mizan-hr.vercel.app,http://localhost:3000"
+    cors_origin_regex: str = r"https://mizan-hr(-[a-z0-9-]+)?-ai-engineer12\.vercel\.app"
 
 
 @lru_cache

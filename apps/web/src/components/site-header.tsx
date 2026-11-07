@@ -69,6 +69,15 @@ function HeaderShell({ onDark }: { onDark: boolean }) {
           >
             {t.nav.how}
           </Link>
+          <Link
+            href="/demo"
+            className={cn(
+              "hidden rounded-md px-3 py-2 text-sm hover:underline sm:inline",
+              onDark ? "text-paper/80" : "text-muted-foreground",
+            )}
+          >
+            {t.nav.demo}
+          </Link>
           <a
             href={GITHUB_URL}
             target="_blank"
