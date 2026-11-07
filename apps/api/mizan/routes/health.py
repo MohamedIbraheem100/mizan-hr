@@ -1,7 +1,7 @@
 """Liveness endpoint. Used by docker compose, Vercel, and uptime monitors."""
 
 from fastapi import APIRouter
-import os
+
 from mizan import __version__
 from mizan.core.config import get_settings
 
