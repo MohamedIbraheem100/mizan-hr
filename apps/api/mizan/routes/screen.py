@@ -81,12 +81,19 @@ async def screen(
     ref = candidate_ref.strip() or f"Candidate #{len(screening.results) + 1}"
 
     def events() -> Iterator[str]:
+        # The numbered lines go back ONLY to the uploader, in-stream, so the UI can
+        # highlight cited lines. They are never persisted (privacy rule).
         yield sse(
             "progress",
             ProgressEvent(
                 node="parse",
                 status="done",
-                detail={"lines": len(cv.lines), "pages": cv.page_count, "source": cv.source},
+                detail={
+                    "line_count": len(cv.lines),
+                    "pages": cv.page_count,
+                    "source": cv.source,
+                    "lines": [{"id": ln.id, "text": ln.text} for ln in cv.lines],
+                },
             ),
         )
         try:

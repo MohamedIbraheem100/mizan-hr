@@ -1,0 +1,13 @@
+Backend Engineer (Python) - Cairo, hybrid
+
+We are looking for a Backend Engineer to build and run the APIs behind our recruiting platform.
+
+Requirements:
+- 3+ years of professional Python experience, ideally with FastAPI or Django
+- Solid PostgreSQL skills: schema design, indexing, query tuning
+- Docker in day-to-day work; CI/CD pipelines (GitHub Actions or similar)
+- Fluent Arabic and English (our team and customers use both)
+
+Nice to have:
+- Kubernetes or other container orchestration
+- Experience with LLM APIs or vector databases

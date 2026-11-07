@@ -173,7 +173,12 @@ def build_graph(gateway: LLMGateway):
 def _detail(node: str, update: dict) -> dict:
     """Small, UI-friendly facts about what a node did (never the CV text)."""
     if node == "redact":
-        return {"redactions": update.get("redactions", 0)}
+        detail: dict = {"redactions": update.get("redactions", 0)}
+        if not update.get("redact_skipped"):
+            # Blind mode: the UI should show the recruiter the same redacted text the
+            # model judged, so identity never leaks through the evidence view either.
+            detail["lines"] = [{"id": k, "text": v} for k, v in update["lines"].items()]
+        return detail
     if node == "extract":
         p: CandidateProfile = update["profile"]
         return {"skills": len(p.skills), "experiences": len(p.experiences)}

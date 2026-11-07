@@ -1,0 +1,52 @@
+[
+  {
+    "file": "01_en_senior_backend.docx",
+    "band": "top",
+    "lang": "en"
+  },
+  {
+    "file": "02_en_mid_django.docx",
+    "band": "any",
+    "lang": "en"
+  },
+  {
+    "file": "03_en_fresh_grad.docx",
+    "band": "bottom",
+    "lang": "en"
+  },
+  {
+    "file": "04_en_accountant.docx",
+    "band": "bottom",
+    "lang": "en"
+  },
+  {
+    "file": "05_en_injection.docx",
+    "band": "bottom",
+    "lang": "en"
+  },
+  {
+    "file": "06_ar_senior_backend.docx",
+    "band": "top",
+    "lang": "ar"
+  },
+  {
+    "file": "07_ar_mid_partial.docx",
+    "band": "any",
+    "lang": "ar"
+  },
+  {
+    "file": "08_ar_career_change.docx",
+    "band": "bottom",
+    "lang": "ar"
+  },
+  {
+    "file": "09_ar_data_analyst.docx",
+    "band": "any",
+    "lang": "ar"
+  },
+  {
+    "file": "10_en_buzzwords.docx",
+    "band": "any",
+    "lang": "en"
+  }
+]

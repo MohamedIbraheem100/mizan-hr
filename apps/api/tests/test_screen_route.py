@@ -69,7 +69,16 @@ def test_screen_streams_progress_then_result_and_persists_it():
     events = _parse_sse(resp.text)
     assert events[0] == (
         "progress",
-        {"node": "parse", "status": "done", "detail": {"lines": 9, "pages": 1, "source": "docx"}},
+        {
+            "node": "parse",
+            "status": "done",
+            "detail": {
+                "line_count": 9,
+                "pages": 1,
+                "source": "docx",
+                "lines": [{"id": f"L{i + 1}", "text": line} for i, line in enumerate(CV_LINES_EN)],
+            },
+        },
     )
     assert events[-1][0] == "result"
     result = events[-1][1]
