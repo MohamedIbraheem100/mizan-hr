@@ -33,6 +33,7 @@
 17. [M2 بالتفصيل: الـ CI](#17-m2-بالتفصيل)
 18. [M3 بالتفصيل: الـ LLM Gateway و Parse و Rubric](#18-m3-بالتفصيل)
 19. [M4a بالتفصيل: محرك التقييم](#19-m4a-بالتفصيل)
+20. [M4b بالتفصيل: الـ Database والـ Migrations](#20-m4b-بالتفصيل)
 
 ---
 
@@ -1450,8 +1451,91 @@ data: {"candidate_ref": "...", "score": 90, ...}
 
 ---
 
+## 20. M4b بالتفصيل
+
 <div dir="rtl" align="right">
 
-*آخر تحديث: 7 نوفمبر 2026، بعد M0 إلى M4a.*
+### المشكلة
+
+قبل M4b الـ API كان جرسون من غير دفتر: كل request بينسى اللي قبله. الـ **Database** هي الدفتر: اللي بيتكتب فيه بيفضل موجود بعد الـ request وبعد ما السيرفر يقفل.
+
+### 5 مصطلحات
+
+| المصطلح | بالبلدي |
+|---|---|
+| **Postgres** | نوع الدفتر: جداول بصفوف وأعمدة. نفس البرنامج شغال في compose على جهازك وعلى Neon |
+| **Neon** | Postgres على السحابة بيدوك **لينك** (`DATABASE_URL`). بينام لما مفيش استخدام ويصحى في ثانية |
+| **SQLAlchemy** | بتكتب الجدول كـ Python class وهو بيحوله SQL. نفس الـ class على Postgres و SQLite |
+| **Migration / Alembic** | "Git للـ database": كل تغيير في الجداول ملف مرقّم، و `alembic upgrade head` بيطبّق الناقص بالترتيب على أي DB |
+| **psycopg** | المترجم بين Python و Postgres على الشبكة |
+
+### الجداول
+
+| جدول | بيحفظ | **مابيحفظش** |
+|---|---|---|
+| `rubrics` | الـ Rubric بعد ما الـ Recruiter أكده | |
+| `screenings` | جلسة فرز: rubric_id، blind، `expires_at` (الإنشاء + 24 ساعة) | |
+| `results` | لكل مرشح: score، الأحكام، الاقتباسات، الملخص (JSONB) | ملف الـ CV، نص الـ CV، الاسم |
+
+### الـ flow الجديد
+
+</div>
+
+```
+POST /rubric            JD  -> Rubric مقترح (مش بيتحفظ)
+POST /screenings        Rubric النهائي + blind -> screening_id  (بيتحفظ)
+POST /screen            screening_id + ملف -> SSE ... -> النتيجة بتتحفظ
+GET  /screenings/{id}   الـ Rubric + النتايج مرتبة (410 بعد 24 ساعة)
+```
+
+<div dir="rtl" align="right">
+
+**ليه بنحفظ الـ Rubric في `/screenings` مش في `/rubric`؟** لأن اللي بيتحفظ لازم يكون نسخة الـ Recruiter **بعد** ما عدّل الأوزان. الاقتراح مجرد اقتراح.
+
+### الملفات
+
+| الملف | دوره |
+|---|---|
+| `db/models.py` | الـ 3 classes. `JSON` بيبقى `JSONB` على Postgres أوتوماتيك (`with_variant`) |
+| `db/session.py` | بيعمل الاتصال مرة واحدة. بيحوّل `postgresql://` لـ `postgresql+psycopg://` عشان يستخدم psycopg 3. `pool_pre_ping` بيتأكد إن الاتصال عايش قبل الاستخدام (Neon بيقفل الاتصالات الخاملة) |
+| `db/repo.py` | الاستعلامات الخمسة اللي محتاجينها، عشان الـ routes تفضل رفيعة |
+| `alembic/env.py` | بيربط Alembic بالـ settings والـ models. الـ URL من env مش من ملف |
+| `alembic/versions/0001_...py` | أول migration: `upgrade()` بتعمل الجداول، `downgrade()` بتمسحهم |
+
+### الأوامر اللي هتستخدمها
+
+</div>
+
+```bash
+alembic upgrade head                      # طبّق كل الـ migrations الناقصة
+alembic current                           # الـ DB واقفة عند أنهي migration
+alembic check                             # الـ models والـ migrations متطابقين؟ (بيشتغل في الـ CI)
+alembic revision --autogenerate -m "..."  # ولّد migration جديدة من الفرق بين الـ models والـ DB
+alembic downgrade -1                      # ارجع خطوة
+```
+
+<div dir="rtl" align="right">
+
+### الاختبارات على SQLite، والـ CI على Postgres حقيقي
+
+- الاختبارات العادية بتستخدم **SQLite في الذاكرة** (`DATABASE_URL=sqlite:///:memory:` بيتحط في `conftest.py` لو مفيش env var). صفر إعداد، ثانيتين.
+- في الـ CI، GitHub Actions بيشغّل **Postgres حقيقي** جنب الـ job (`services:` في `ci.yml`)، وبيعمل `alembic upgrade head` ثم `alembic check` ثم `pytest`. يعني كل PR بيختبر الـ migration على نفس engine الـ production.
+- ليه الاتنين؟ السرعة محلياً، والمطابقة في الـ CI.
+
+### 3 مشاكل حقيقية اتكشفت
+
+**1. `role "mizan" does not exist`.** الـ migration فشلت على compose رغم إن الـ container شغال. السبب: عندك PostgreSQL 18 متسطب على Windows كـ service وماسك port 5432، فـ `localhost:5432` كان بيوصل لبتاعك مش لبتاع Docker. الحل: compose بيطلّع Postgres على **5433** من ناحية الجهاز. **الدرس:** لما حاجة "شغالة" وبترد غلط، اسأل: أنا بكلم مين فعلاً؟ (`Get-NetTCPConnection -LocalPort 5432`).
+
+**2. التطبيق كان هيقع في production.** جربنا نشغّل الـ image: `IndexError`. الـ config كان بيطلع 4 مستويات فوق عشان يلاقي `.env`، وجوه الـ container الملف في `/app/mizan/core/` ومفيش 4 مستويات. الكود ده كان موجود من M3 وعدّى 3 PRs لأن الـ CI كان **بيبني** الـ image بس مابيشغّلهاش. الحل: الـ config بيدوّر في الأجداد الموجودين بس، والـ CI بقى يشغّل الـ image ويعمل import و migration جواها. **الدرس:** build ناجح مش معناه تشغيل ناجح. اختبر الـ artifact اللي هيروح production، مش الكود بس.
+
+**3. حجم الـ image بقى 455 MB** (من 385). psycopg و SQLAlchemy و Alembic. لسه تحت حد Vercel (500 MB للـ bundle، والـ site-packages لوحدها حوالي 190)، بس ده تحذير: التنحيف (uvicorn من غير extras، إلخ) هيبقى في M6.
+
+</div>
+
+---
+
+<div dir="rtl" align="right">
+
+*آخر تحديث: 7 نوفمبر 2026، بعد M0 إلى M4b.*
 
 </div>

@@ -13,6 +13,24 @@ jobs:
   api:
     name: API (ruff + pytest)
     runs-on: ubuntu-latest
+    # A real Postgres next to the job: migrations and tests run against the same
+    # engine as production (Neon), not just SQLite.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: mizan
+          POSTGRES_PASSWORD: mizan
+          POSTGRES_DB: mizan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mizan -d mizan"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://mizan:mizan@localhost:5432/mizan
     defaults:
       run:
         working-directory: apps/api
@@ -26,6 +44,10 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: ruff check .
       - run: ruff format --check .
+      - name: Apply migrations to the CI database
+        run: alembic upgrade head
+      - name: Models and migrations must agree
+        run: alembic check
       - run: pytest
 
   web:
@@ -52,3 +74,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t mizan-api:ci apps/api
+      - name: Image boots (imports the app, runs migrations on a scratch DB)
+        run: |
+          docker run --rm -e DATABASE_URL=sqlite:////tmp/ci.db mizan-api:ci \
+            python -c "import mizan.main; print('app import ok')"
+          docker run --rm -e DATABASE_URL=sqlite:////tmp/ci.db mizan-api:ci \
+            python -m alembic upgrade head

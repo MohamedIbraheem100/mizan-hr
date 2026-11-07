@@ -1,11 +1,32 @@
-"""Shared test doubles. No test in this suite needs network or API keys."""
+"""Shared test doubles. No test in this suite needs network or API keys.
 
-import json
+Database: tests run on in-memory SQLite unless DATABASE_URL is already set in the
+environment (CI sets it to a real Postgres service). Real env vars beat .env, so a
+developer's Neon URL in .env is never touched by the test suite.
+"""
 
-import pytest
-from pydantic import BaseModel
+import os
 
-from mizan.llm.providers.base import ProviderError
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")  # before any settings load
+
+import json  # noqa: E402
+
+import pytest  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+
+from mizan.db.models import Base  # noqa: E402
+from mizan.db.session import get_engine  # noqa: E402
+from mizan.llm.providers.base import ProviderError  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def fresh_tables():
+    """Every test starts with empty tables and leaves none behind."""
+    engine = get_engine()
+    Base.metadata.create_all(engine)
+    yield
+    Base.metadata.drop_all(engine)
+
 
 VALID_RUBRIC = {
     "job_title": "Sales Manager",
