@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useLang } from "@/components/language-provider";
 import { Logo } from "@/components/site-header";
 
@@ -17,7 +19,12 @@ export function SiteFooter() {
         </div>
         <div className="grid gap-3 text-sm text-muted-foreground md:grid-cols-3">
           <p>{t.footer.decision}</p>
-          <p>{t.footer.privacy}</p>
+          <p>
+            {t.footer.privacy}{" "}
+            <Link href="/privacy" className="underline">
+              {t.nav.privacy}
+            </Link>
+          </p>
           <p>{t.footer.demo}</p>
         </div>
       </div>

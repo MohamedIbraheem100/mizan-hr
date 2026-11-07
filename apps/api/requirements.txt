@@ -16,6 +16,9 @@ python-docx==1.2.0
 langgraph==1.2.20
 python-multipart==0.0.33
 
+# Rate limit over Upstash REST (M6)
+httpx==0.28.1
+
 # Persistence (M4b): Postgres (Neon in prod, docker compose locally), migrations
 sqlalchemy==2.1.8
 alembic==1.20.1

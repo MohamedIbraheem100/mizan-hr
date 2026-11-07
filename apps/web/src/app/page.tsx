@@ -72,7 +72,7 @@ export default function Home() {
                 size="lg"
                 variant="outline"
                 nativeButton={false}
-                render={<a href="#how" />}
+                render={<Link href="/demo" />}
                 className="h-11 border-white/25 bg-transparent px-6 text-base text-paper hover:bg-white/10"
               >
                 {t.hero.secondary}

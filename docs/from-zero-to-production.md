@@ -36,6 +36,7 @@
 20. [M4b بالتفصيل: الـ Database والـ Migrations](#20-m4b-بالتفصيل)
 21. [M5a بالتفصيل: الـ API على Vercel](#21-m5a-بالتفصيل)
 22. [M5b بالتفصيل: الـ UI](#22-m5b-بالتفصيل)
+23. [M6 بالتفصيل: الـ Launch](#23-m6-بالتفصيل)
 
 ---
 
@@ -1659,8 +1660,48 @@ GET /screenings   -> النتيجة راجعة من Neon
 
 ---
 
+## 23. M6 بالتفصيل
+
 <div dir="rtl" align="right">
 
-*آخر تحديث: 7 نوفمبر 2026، بعد M0 إلى M5b.*
+### الهدف
+
+المنتج يتحط قدام ناس غرباء من غير ما يقع ولا يتساء استخدامه.
+
+| الحاجة | إزاي اتعملت | الدرس |
+|---|---|---|
+| **Demo mode** | script بيشغّل الـ pipeline الحقيقي على الـ 10 CVs ويحفظ النتيجة JSON جوه `apps/web/public/demo/`. صفحة `/demo` بتقراه من غير API ولا model ولا DB | أهم صفحة في يوم العرض هي اللي مابتعتمدش على حاجة |
+| **Rate limit** | `core/ratelimit.py`: عدّاد يومي لكل زائر (hash للـ IP، من غير cookies) + سقف عام. Upstash Redis بـ REST (أمر `INCR` + `EXPIRE` في pipeline واحد). لو Redis واقع: بنسمح (fail open) ونسجّل warning | الحماية مابتبقاش سبب إن المنتج يقع |
+| **مسح 24 ساعة** | `POST /admin/cleanup` محمي بـ token في header، و workflow في GitHub Actions بـ `schedule: cron` كل ساعة بيضربه. نفس الـ token في GitHub Secrets (عشان يبعته) وفي Vercel env (عشان يتأكد منه) | Cron من غير سيرفر، و Secret في مكانين |
+| **CORS** | من `*` لقايمة: الـ production + regex للـ previews + localhost | افتح الباب لمين محتاجه بس |
+| **Privacy** | صفحة `/privacy` عربي وإنجليزي بتقول بالضبط إيه بيتحفظ وإيه لأ ورايح لمين | الشفافية جزء من المنتج |
+| **Screen Me** | زرار بيضيف CV صاحب المشروع من `public/screen-me/cv.pdf` | الـ demo بيبقى شخصي |
+
+### Cron في GitHub Actions بالبلدي
+
+</div>
+
+```yaml
+on:
+  schedule:
+    - cron: "17 * * * *"   # دقيقة 17 من كل ساعة (UTC)
+  workflow_dispatch:       # زرار تشغيل يدوي
+```
+
+<div dir="rtl" align="right">
+
+الخمس خانات: دقيقة، ساعة، يوم الشهر، الشهر، يوم الأسبوع. والنجمة = "كل". اخترنا الدقيقة 17 مش 0 لأن كل الناس بتختار 0 وGitHub بيتأخر وقتها.
+
+### الـ Secret في مكانين
+
+الـ workflow بيبعت `X-Cleanup-Token: ${{ secrets.CLEANUP_TOKEN }}`، والـ API بيقارنه بـ `CLEANUP_TOKEN` من env. لو حد ضرب الـ endpoint من غير الـ token: 403. القيمة نفسها عمرها ماتدخل الكود ولا الـ logs.
+
+</div>
+
+---
+
+<div dir="rtl" align="right">
+
+*آخر تحديث: 7 نوفمبر 2026، بعد إنهاء الـ Day-1 MVP كامل (M0 إلى M6).*
 
 </div>
