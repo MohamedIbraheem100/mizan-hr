@@ -2,7 +2,7 @@
 
 import json
 
-from groq import Groq
+from groq import BadRequestError, Groq
 from pydantic import BaseModel
 
 from mizan.llm.providers.base import ProviderError
@@ -37,6 +37,22 @@ class GroqProvider:
                 temperature=0,
                 timeout=timeout_s,
             )
+        except BadRequestError as exc:
+            # JSON mode rejected the model's own text (often a refusal like "I can't
+            # comply"). That is bad OUTPUT, not a transport failure: hand the text back
+            # so the gateway validates it, fails, and retries once with feedback.
+            failed = _failed_generation(exc)
+            if failed is not None:
+                return failed
+            raise ProviderError(f"groq: {type(exc).__name__}: {exc}") from exc
         except Exception as exc:
             raise ProviderError(f"groq: {type(exc).__name__}: {exc}") from exc
         return resp.choices[0].message.content or ""
+
+
+def _failed_generation(exc: BadRequestError) -> str | None:
+    body = exc.body if isinstance(exc.body, dict) else {}
+    err = body.get("error", body) if isinstance(body, dict) else {}
+    if isinstance(err, dict) and err.get("code") == "json_validate_failed":
+        return str(err.get("failed_generation", ""))
+    return None
