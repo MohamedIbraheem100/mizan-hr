@@ -64,6 +64,7 @@ export default function Home() {
           <Button
             size="lg"
             variant="outline"
+            nativeButton={false}
             render={<a href={GITHUB_URL} target="_blank" rel="noreferrer" />}
           >
             View on GitHub
