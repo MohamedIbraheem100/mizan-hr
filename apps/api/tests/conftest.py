@@ -20,20 +20,31 @@ VALID_RUBRIC = {
 
 class FakeProvider:
     """Replays scripted replies. A reply can be a dict (serialized to JSON),
-    a raw string, or an Exception instance (raised)."""
+    a raw string, or an Exception instance (raised).
 
-    def __init__(self, name: str, replies: list) -> None:
+    `replies` is either a list (consumed in call order) or a dict keyed by schema
+    name (each key its own queue). The dict form is needed when graph nodes run
+    in parallel and call order is not deterministic.
+    """
+
+    def __init__(self, name: str, replies: list | dict[str, list]) -> None:
         self.name = name
-        self._replies = list(replies)
+        self._by_schema = (
+            {k: list(v) for k, v in replies.items()} if isinstance(replies, dict) else None
+        )
+        self._replies = list(replies) if isinstance(replies, list) else []
         self.calls: list[dict] = []
 
     def generate_json(
         self, *, system: str, user: str, schema: type[BaseModel], timeout_s: float
     ) -> str:
         self.calls.append({"system": system, "user": user, "schema": schema.__name__})
-        if not self._replies:
-            raise AssertionError(f"{self.name}: no scripted reply left")
-        reply = self._replies.pop(0)
+        queue = (
+            self._by_schema.get(schema.__name__) if self._by_schema is not None else self._replies
+        )
+        if not queue:
+            raise AssertionError(f"{self.name}: no scripted reply left for {schema.__name__}")
+        reply = queue.pop(0)
         if isinstance(reply, Exception):
             raise reply
         if isinstance(reply, dict):
