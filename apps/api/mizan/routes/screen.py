@@ -13,17 +13,29 @@ One request per CV (the frontend runs up to 3 in parallel) keeps each call far
 under Vercel's function timeout and isolates failures.
 """
 
+import hmac
 import json
 import logging
 from collections.abc import Iterator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette.concurrency import iterate_in_threadpool
 
+from mizan.core.config import get_settings
 from mizan.core.ratelimit import RateLimiter, client_ip, get_limiter
 from mizan.db import repo
 from mizan.db.session import get_db, get_sessionmaker
@@ -52,16 +64,25 @@ async def screen(
     limiter: Annotated[RateLimiter, Depends(get_limiter)],
     request: Request,
     candidate_ref: Annotated[str, Form(max_length=60)] = "",
+    x_internal_key: Annotated[str, Header()] = "",
 ) -> StreamingResponse:
-    decision = limiter.check(
-        client_ip(dict(request.headers), request.client.host if request.client else "?")
+    # A trusted server-to-server caller (X-Internal-Key) is counted on its own daily cap;
+    # everyone else, including a wrong key, goes through the public per-visitor limit.
+    settings = get_settings()
+    is_internal = bool(settings.internal_key) and hmac.compare_digest(
+        x_internal_key, settings.internal_key
     )
-    if not decision.allowed:
-        detail = (
-            "Daily limit reached for this demo (10 CVs per visitor per day)."
-            if decision.scope == "visitor"
-            else "The public demo reached its daily capacity. Try again tomorrow."
+    if is_internal:
+        decision = limiter.check_internal(settings.rate_limit_internal_per_day)
+    else:
+        decision = limiter.check(
+            client_ip(dict(request.headers), request.client.host if request.client else "?")
         )
+    if not decision.allowed:
+        detail = {
+            "visitor": "Daily limit reached for this demo (10 CVs per visitor per day).",
+            "internal": "The partner integration reached its daily capacity. Try again tomorrow.",
+        }.get(decision.scope, "The public demo reached its daily capacity. Try again tomorrow.")
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS, detail, headers={"Retry-After": "3600"}
         )
