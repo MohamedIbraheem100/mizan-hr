@@ -65,7 +65,7 @@ class Decision:
     allowed: bool
     remaining: int
     limit: int
-    scope: str  # "visitor" | "global"
+    scope: str  # "visitor" | "global" | "internal"
 
 
 class RateLimiter:
@@ -91,6 +91,22 @@ class RateLimiter:
         except Exception as exc:  # Redis down must not take the product down
             log.warning("rate limit backend error, allowing request: %s", exc)
             return Decision(True, -1, self.per_day, "visitor")
+
+    def check_internal(self, per_day: int) -> Decision:
+        """Trusted server-to-server caller: its own daily bucket.
+
+        No visitor key (the caller's IP is a shared egress IP) and the public global
+        counter is left alone, so partner traffic cannot starve the public demo.
+        """
+        day = datetime.now(UTC).strftime("%Y%m%d")
+        try:
+            n = self.backend.incr_with_ttl(f"rl:internal:{day}", DAY_S)
+            if n > per_day:
+                return Decision(False, 0, per_day, "internal")
+            return Decision(True, per_day - n, per_day, "internal")
+        except Exception as exc:  # same fail-open rule as check()
+            log.warning("rate limit backend error, allowing request: %s", exc)
+            return Decision(True, -1, per_day, "internal")
 
 
 def build_limiter(settings: Settings) -> RateLimiter:

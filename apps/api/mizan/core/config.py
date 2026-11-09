@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     max_jd_chars: int = 10_000
     rate_limit_per_day: int = 10  # CVs per visitor per day (public demo)
     rate_limit_global_per_day: int = 200  # CVs per day across all visitors (protects quota)
+    # Trusted server-to-server callers (the owner's portfolio "Recruiter Mode") all arrive from
+    # shared Vercel egress IPs, so the per-visitor limit would count them as one visitor.
+    # A request carrying X-Internal-Key == INTERNAL_KEY skips the visitor limit and is counted
+    # on its own daily cap instead. Empty key = feature off.
+    internal_key: str = ""
+    rate_limit_internal_per_day: int = 100
 
     # Ops
     cleanup_token: str = ""  # shared secret for POST /admin/cleanup (GitHub Actions cron)
